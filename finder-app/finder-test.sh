@@ -49,8 +49,9 @@ then
 	fi
 fi
 #echo "Removing the old writer utility and compiling as a native application"
-make clean
-make
+# Remove make steps according to assignment3 par1 implementation 1
+#make clean
+#make
 
 for i in $( seq 1 $NUMFILES)
 do
