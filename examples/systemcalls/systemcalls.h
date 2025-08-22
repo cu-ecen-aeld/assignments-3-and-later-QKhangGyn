@@ -2,6 +2,9 @@
 #include <stdbool.h>
 #include <stdarg.h>
 
+#include <stdlib.h>
+#include <sys/wait.h>
+
 bool do_system(const char *command);
 
 bool do_exec(int count, ...);

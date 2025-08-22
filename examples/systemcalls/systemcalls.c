@@ -16,10 +16,20 @@ bool do_system(const char *cmd)
  *   and return a boolean true if the system() call completed with success
  *   or false() if it returned a failure
 */
+    //create variable
+    int retval_int = 0;
 
-    return true;
+    //call the system() function
+    retval_int = system(cmd);
+    //check whether the process terminated normally
+    if(WIFEXITED(retval_int)){
+        //check whether the command invoked successfully
+        if(WEXITSTATUS(retval_int) == 0) {
+            return true;
+        } 
+    }
+    return false;
 }
-
 /**
 * @param count -The numbers of variables passed to the function. The variables are command to execute.
 *   followed by arguments to pass to the command
