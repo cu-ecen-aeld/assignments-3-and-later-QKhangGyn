@@ -68,10 +68,56 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
+    //create variables
+    int status_int = 0;
+    pid_t child_pid = 0;
+    bool retval_b = false;
+    //check intput parameters
+    //no parameter
+    if (count == 0) {
+        printf("Error: invalid paremeters\n");
+    } else {
+        //create a child process
+        child_pid = fork();
+        if (child_pid == -1) { //error in creating a child
+            perror("fork");
+        } else if(child_pid == 0) { //success
+            //create variable
+            int retval_int = 0;
+            char *p_path_ch = command[0];
+            char *par_args_ch[count];
+            //get the arguments
+            for(i=1; i<=count; i++) {
+                par_args_ch[i-1] = command[i];
+            }
+            //execute the command
+            retval_int = execv(p_path_ch,par_args_ch);
+            if (retval_int == -1) { //error
+                perror ("execv");
+                exit(EXIT_FAILURE);
+            } else {
+                exit(EXIT_SUCCESS);
+            }
+        }
+        //in the parent
+        child_pid = wait(&status_int);
+        //error
+        if (child_pid == -1){
+            perror("wait");
+        } else {
+                    //check if the child terminated normally
+            if(WIFEXITED(status_int)) {
+                //if the exitstatus is success
+                if(WEXITSTATUS(status_int) == EXIT_SUCCESS){
+                    retval_b = true;
+                }
+            }
+        }
+    }
+    
+    va_end(args);    
 
-    va_end(args);
-
-    return true;
+    return retval_b;
 }
 
 /**
