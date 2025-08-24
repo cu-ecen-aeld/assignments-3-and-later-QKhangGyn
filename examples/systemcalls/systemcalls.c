@@ -148,8 +148,79 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
+    //create variable
+    pid_t child_pid = 0;
+    bool retval_b = false;
+    //check input parameters
+    if (count == 0)
+    {
+        printf("Error: invalid parameter\n");
+        return false;
+    }
+    //create process
+    child_pid = fork();
+    //check the result
+    switch (child_pid)
+    {
+    case -1: {
+        //error
+        perror("fork");
+        return false;
+        break;
+    }
+    case 0: {
+        //child
+        int filefd_i = 0;
+        //Extract the command path file
+        char* p_path_ch = command[0];
+        //Extract the arguments
+        char *par_arg_ch[count];
+        for (i=1; i <= count; i++){
+            par_arg_ch[i-1] = command[i];
+        }
+        //open the file that you want to write
+        //check file path by opening it
+        filefd_i = open(outputfile, O_RDWR | O_CREAT | O_TRUNC, 0666);
+        //check error when opening it
+        if (filefd_i == -1) {
+            perror("open");
+            exit(EXIT_FAILURE);
+        };
+        //close the stdout and assign its fd to the file
+        dup2(filefd_i, 1);
+        //run the command
+        int retval_int = execv(p_path_ch, par_arg_ch);
+        //close the file
+        close(filefd_i);
+        //check if execv fail
+        if (retval_int == -1) {
+            perror("execv");
+            exit(EXIT_FAILURE);
+        } else {
+            exit(EXIT_SUCCESS);
+        }
+    }
+    default: {
+        //parrent
+        int status_i = 0;
+        pid_t ret_pid = 0;
+        ret_pid = wait(&status_i);
+        //check the wait function
+        if (ret_pid == -1) {
+            perror("wait");
+            return false;
+        }
 
+        //check the status when chil exited
+        if(WIFEXITED(status_i)) {
+            if(WEXITSTATUS(status_i) == EXIT_SUCCESS){
+                retval_b = true;
+            }
+        }
+        break;
+    }
+    }
     va_end(args);
 
-    return true;
+    return retval_b;
 }
