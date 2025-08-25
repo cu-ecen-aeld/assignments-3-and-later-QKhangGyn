@@ -74,43 +74,35 @@ bool do_exec(int count, ...)
     bool retval_b = false;
     //check intput parameters
     //no parameter
-    if (count == 0) {
+    if ((count == 0) || (access(command[0], F_OK) == -1)){
+        //invalid parameter
         printf("Error: invalid paremeters\n");
+        va_end(args);
+        return false;
+    }
+    //create a child process
+    child_pid = fork();
+    if (child_pid == -1) { //error in creating a child
+        perror("fork");
+    } else if(child_pid == 0) { //success
+        //execute the command
+        execv(command[0], command);
+        //if the execv return, error
+        perror("execv");
+        exit(EXIT_FAILURE);
+    }
+    //in the parent
+    child_pid = wait(&status_int);
+    //error
+    if (child_pid == -1){
+        perror("wait");
     } else {
-        //create a child process
-        child_pid = fork();
-        if (child_pid == -1) { //error in creating a child
-            perror("fork");
-        } else if(child_pid == 0) { //success
-            //create variable
-            int retval_int = 0;
-            char *p_path_ch = command[0];
-            char *par_args_ch[count];
-            //get the arguments
-            for(i=1; i<=count; i++) {
-                par_args_ch[i-1] = command[i];
-            }
-            //execute the command
-            retval_int = execv(p_path_ch,par_args_ch);
-            if (retval_int == -1) { //error
-                perror ("execv");
-                exit(EXIT_FAILURE);
-            } else {
-                exit(EXIT_SUCCESS);
-            }
-        }
-        //in the parent
-        child_pid = wait(&status_int);
-        //error
-        if (child_pid == -1){
-            perror("wait");
-        } else {
-                    //check if the child terminated normally
-            if(WIFEXITED(status_int)) {
-                //if the exitstatus is success
-                if(WEXITSTATUS(status_int) == EXIT_SUCCESS){
-                    retval_b = true;
-                }
+        //check if the child terminated normally
+        printf("The status is %d and %d\n", WIFEXITED(status_int), WEXITSTATUS(status_int));
+        if(WIFEXITED(status_int)) {
+            //if the exitstatus is success
+            if(WEXITSTATUS(status_int) == EXIT_SUCCESS){
+                retval_b = true;
             }
         }
     }
@@ -152,9 +144,10 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     pid_t child_pid = 0;
     bool retval_b = false;
     //check input parameters
-    if (count == 0)
+    if ( (count == 0) || (access(command[0], F_OK) == -1) || access(outputfile, F_OK) == -1)
     {
         printf("Error: invalid parameter\n");
+        va_end(args);
         return false;
     }
     //create process
@@ -165,19 +158,11 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     case -1: {
         //error
         perror("fork");
-        return false;
         break;
     }
     case 0: {
         //child
         int filefd_i = 0;
-        //Extract the command path file
-        char* p_path_ch = command[0];
-        //Extract the arguments
-        char *par_arg_ch[count];
-        for (i=1; i <= count; i++){
-            par_arg_ch[i-1] = command[i];
-        }
         //open the file that you want to write
         //check file path by opening it
         filefd_i = open(outputfile, O_RDWR | O_CREAT | O_TRUNC, 0666);
@@ -189,16 +174,9 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
         //close the stdout and assign its fd to the file
         dup2(filefd_i, 1);
         //run the command
-        int retval_int = execv(p_path_ch, par_arg_ch);
-        //close the file
-        close(filefd_i);
-        //check if execv fail
-        if (retval_int == -1) {
-            perror("execv");
-            exit(EXIT_FAILURE);
-        } else {
-            exit(EXIT_SUCCESS);
-        }
+        execv(command[0], command);
+        perror("execv");
+        exit(EXIT_FAILURE);
     }
     default: {
         //parrent
@@ -210,7 +188,6 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
             perror("wait");
             return false;
         }
-
         //check the status when chil exited
         if(WIFEXITED(status_i)) {
             if(WEXITSTATUS(status_i) == EXIT_SUCCESS){
