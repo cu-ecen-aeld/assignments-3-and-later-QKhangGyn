@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/sh 
 NUM_ARG=2 
 filedir=$1 
 searchstr=$2
